@@ -29,7 +29,7 @@ int main(void) {
         }while (choice < EXIT || choice > AES_DECRYPT);
         switch (choice) {
             case EXIT:
-                printf("Goodbye!");
+                printf("Goodbye!\n");
                 break;
             case XOR_ENCRYPT:
                 do {
