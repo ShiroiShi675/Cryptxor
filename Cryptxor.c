@@ -143,51 +143,31 @@ bool aes256_encryption(unsigned char* buffer_file,const char* file_name,const ch
     fwrite(iv,1,IV_LEN,f_output);
     if (crypto_pwhash(key,KEY_LEN,password,strlen(password),salt,crypto_pwhash_OPSLIMIT_MODERATE,crypto_pwhash_MEMLIMIT_MODERATE,crypto_pwhash_ALG_ARGON2ID13) != 0) {
         printf("Error while creating key!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
-    if (EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv) != SUCCESS) {
+    if (EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv) != 1) {
         printf("Error while encryption data!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
     while ((bytes_read = fread(buffer_file,1,BUFFER_LEN,f_input)) > 0) {
         if (EVP_EncryptUpdate(ctx,buffer_encrypted,&bytes_encrypted,buffer_file,(int)bytes_read) != SUCCESS) {
             printf("Error while encryption data!\n");
-            sodium_memzero(key,sizeof(key));
-            fclose(f_input);
-            fclose(f_output);
-            remove(file_name_output);
-            EVP_CIPHER_CTX_free(ctx);
+            clean_everything(f_input,f_output,file_name_output,ctx,key);
             return false;
         }
         fwrite(buffer_encrypted,1,bytes_encrypted,f_output);
     }
     if (EVP_EncryptFinal_ex(ctx,buffer_encrypted,&bytes_encrypted) != SUCCESS) {
         printf("Error while encryption data!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
     fwrite(buffer_encrypted,1,bytes_encrypted,f_output);
     if (EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_AEAD_GET_TAG,TAG_LEN,tag) != SUCCESS) {
         printf("Error while encryption data!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
     fwrite(tag,1,TAG_LEN,f_output);
@@ -233,20 +213,12 @@ bool aes256_decryption(unsigned char* buffer_file,const char* file_name,const ch
     fread(iv,1,IV_LEN,f_input);
     if (crypto_pwhash(key,KEY_LEN,password,strlen(password),salt,crypto_pwhash_OPSLIMIT_MODERATE,crypto_pwhash_MEMLIMIT_MODERATE,crypto_pwhash_ALG_ARGON2ID13) != 0) {
         printf("Error while creating key!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
     if (EVP_DecryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv) != SUCCESS) {
         printf("Error while decryption data!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
     fseek(f_input,-TAG_LEN,SEEK_END);
@@ -263,11 +235,7 @@ bool aes256_decryption(unsigned char* buffer_file,const char* file_name,const ch
         }
         if (EVP_DecryptUpdate(ctx,buffer_decrypted,&bytes_decrypted,buffer_file,(int)bytes_read) != SUCCESS) {
             printf("Error while decryption data!\n");
-            sodium_memzero(key,sizeof(key));
-            fclose(f_input);
-            fclose(f_output);
-            remove(file_name_output);
-            EVP_CIPHER_CTX_free(ctx);
+            clean_everything(f_input,f_output,file_name_output,ctx,key);
             return false;
         }
         fwrite(buffer_decrypted,1,bytes_decrypted,f_output);
@@ -275,20 +243,12 @@ bool aes256_decryption(unsigned char* buffer_file,const char* file_name,const ch
     }
     if (EVP_CIPHER_CTX_ctrl(ctx,EVP_CTRL_AEAD_SET_TAG,TAG_LEN,tag) != SUCCESS) {
         printf("Tag not valid,impossible to decrypt file!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
     if (EVP_DecryptFinal_ex(ctx,buffer_decrypted,&bytes_decrypted) != SUCCESS) {
         printf("Error while decryption data,incorrect password or corrupted file!\n");
-        sodium_memzero(key,sizeof(key));
-        fclose(f_input);
-        fclose(f_output);
-        remove(file_name_output);
-        EVP_CIPHER_CTX_free(ctx);
+        clean_everything(f_input,f_output,file_name_output,ctx,key);
         return false;
     }
     fwrite(buffer_decrypted,1,bytes_decrypted,f_output);
@@ -299,3 +259,10 @@ bool aes256_decryption(unsigned char* buffer_file,const char* file_name,const ch
     return true;
 }
 
+void clean_everything(FILE* f_input,FILE* f_output,const char* file_name_output,EVP_CIPHER_CTX* ctx,unsigned char* key) {
+    sodium_memzero(key,KEY_LEN);
+    fclose(f_input);
+    fclose(f_output);
+    EVP_CIPHER_CTX_free(ctx);
+    remove(file_name_output);
+}
