@@ -283,7 +283,7 @@ bool aes256_decryption(unsigned char* buffer_file,const char* file_name,const ch
         return false;
     }
     if (EVP_DecryptFinal_ex(ctx,buffer_decrypted,&bytes_decrypted) != SUCCESS) {
-        printf("Error while decryption data!\n");
+        printf("Error while decryption data,incorrect password or corrupted file!\n");
         sodium_memzero(key,sizeof(key));
         fclose(f_input);
         fclose(f_output);
