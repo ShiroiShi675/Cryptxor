@@ -19,5 +19,6 @@ void print_menu();
 void print_banner();
 bool aes256_encryption(unsigned char* buffer_file,const char* file_name,const char* password);
 bool aes256_decryption(unsigned char* buffer_file,const char* file_name,const char* password);
+void clean_everything(FILE* f_input,FILE* f_output,const char* file_name_output,EVP_CIPHER_CTX* ctx,unsigned char* key);
 
 #endif //CRYPTXOR_CRYPTXOR_H
