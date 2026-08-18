@@ -150,7 +150,7 @@ bool aes256_encryption(unsigned char* buffer_file,const char* file_name,const ch
         EVP_CIPHER_CTX_free(ctx);
         return false;
     }
-    if (EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv) != 1) {
+    if (EVP_EncryptInit_ex(ctx,EVP_aes_256_gcm(),NULL,key,iv) != SUCCESS) {
         printf("Error while encryption data!\n");
         sodium_memzero(key,sizeof(key));
         fclose(f_input);
